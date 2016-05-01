@@ -52,4 +52,17 @@ class Zip
               .insert_one(_id:@id, city:@city, state:@state, pop:@population)
     @id=result.inserted_id
   end
+
+  # update the values for this instance
+  def update(updates)
+    Rails.logger.debug {"updating #{self} with #{updates}"}
+
+    #map internal :population term to :pop document term
+    updates[:pop]=updates[:population]  if !updates[:population].nil?
+    updates.slice!(:city, :state, :pop) if !updates.nil?
+
+    self.class.collection
+              .find(_id:@id)
+              .update_one(:$set=>updates)
+  end
 end
