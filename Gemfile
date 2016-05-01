@@ -15,6 +15,7 @@ gem 'coffee-rails', '~> 4.1.0'
 # gem 'therubyracer', platforms: :ruby
 
 gem 'mongoid', '~> 5.0.0'
+gem 'will_paginate', '~> 3.0.7'
 
 # Use jquery as the JavaScript library
 gem 'jquery-rails'
