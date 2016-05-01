@@ -32,4 +32,15 @@ class Zip
 
     return result
   end
+
+  # locate a specific document. Use initialize(hash) on the result to
+  # get in class instance form
+  def self.find id
+    Rails.logger.debug {"getting zip #{id}"}
+
+    doc=collection.find(:_id=>id)
+                  .projection({_id:true, city:true, state:true, pop:true})
+                  .first
+    return doc.nil? ? nil : Zip.new(doc)
+  end 
 end
