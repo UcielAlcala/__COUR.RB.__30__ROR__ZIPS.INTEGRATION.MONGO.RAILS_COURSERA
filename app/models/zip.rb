@@ -42,5 +42,14 @@ class Zip
                   .projection({_id:true, city:true, state:true, pop:true})
                   .first
     return doc.nil? ? nil : Zip.new(doc)
-  end 
+  end
+
+  # create a new document using the current instance
+  def save
+    Rails.logger.debug {"saving #{self}"}
+
+    result=self.class.collection
+              .insert_one(_id:@id, city:@city, state:@state, pop:@population)
+    @id=result.inserted_id
+  end
 end
