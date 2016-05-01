@@ -4,7 +4,8 @@ class ZipsController < ApplicationController
   # GET /zips
   # GET /zips.json
   def index
-    @zips = Zip.all
+    #@zips = Zip.all
+    @zips = Zip.paginate(params) 
   end
 
   # GET /zips/1
