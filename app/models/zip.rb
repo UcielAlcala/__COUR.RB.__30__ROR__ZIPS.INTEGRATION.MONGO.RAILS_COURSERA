@@ -65,4 +65,13 @@ class Zip
               .find(_id:@id)
               .update_one(:$set=>updates)
   end
+
+  # remove the document associated with this instance form the DB
+  def destroy
+    Rails.logger.debug {"destroying #{self}"}
+
+    self.class.collection
+              .find(_id:@id)
+              .delete_one
+  end
 end
