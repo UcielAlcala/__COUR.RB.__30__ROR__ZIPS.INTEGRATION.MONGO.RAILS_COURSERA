@@ -1,6 +1,21 @@
 class Zip
   include ActiveModel::Model
 
+  attr_accessor :id, :city, :state, :population
+
+  def to_s
+    "#{@id}: #{@city}, #{@state}, pop=#{@population}"
+  end
+
+  # initialize from both a Mongo and Web hash
+  def initialize(params={})
+    #switch between both internal and external views of id and population
+    @id=params[:_id].nil? ? params[:id] : params[:_id]
+    @city=params[:city]
+    @state=params[:state]
+    @population=params[:pop].nil? ? params[:population] : params[:pop]
+  end
+
   # tell Rails whether this instance is persisted
   def persisted?
     !@id.nil?
@@ -12,17 +27,23 @@ class Zip
     nil
   end
 
-  #Convenience method for access to client in console
+  # convenience method for access to client in console
   def self.mongo_client
-    Mongoid::Clients.default
+   Mongoid::Clients.default
   end
 
-  #Convenience method for access to client in console
+  # convenience method for access to zips collection
   def self.collection
-    self.mongo_client['zips']
+   self.mongo_client['zips']
   end
 
-  #Return all documents in zips collection
+  # implement a find that returns a collection of document as hashes.
+  # Use initialize(hash) to express individual documents as a class
+  # instance.
+  #   * prototype - query example for value equality
+  #   * sort - hash expressing multi-term sort order
+  #   * offset - document to start results
+  #   * limit - number of documents to include
   def self.all(prototype={}, sort={:population=>1}, offset=0, limit=100)
     #map internal :population term to :pop document term
     tmp = {} #hash needs to stay in stable order provided
@@ -44,6 +65,36 @@ class Zip
     result=result.limit(limit) if !limit.nil?
 
     return result
+  end
+
+  #implememts the will_paginate paginate method that accepts
+  # page - number >= 1 expressing offset in pages
+  # per_page - row limit within a single page
+  # also take in some custom parameters like
+  # sort - order criteria for document
+  # (terms) - used as a prototype for selection
+  # This method uses the all() method as its implementation
+  # and returns instantiated Zip classes within a will_paginate
+  # page
+  def self.paginate(params)
+    Rails.logger.debug("paginate(#{params})")
+    page=(params[:page] ||= 1).to_i
+    limit=(params[:per_page] ||= 30).to_i
+    offset=(page-1)*limit
+    sort=params[:sort] ||= {}
+
+    #get the associated page of Zips -- eagerly convert doc to Zip
+    zips=[]
+    all(params, sort, offset, limit).each do |doc|
+      zips << Zip.new(doc)
+    end
+
+    #get a count of all documents in the collection
+    total=all(params, sort, 0, 1).count
+
+    WillPaginate::Collection.create(page, limit, total) do |pager|
+      pager.replace(zips)
+    end
   end
 
   # locate a specific document. Use initialize(hash) on the result to
@@ -86,35 +137,5 @@ class Zip
     self.class.collection
               .find(_id:@id)
               .delete_one
-  end
-
-  #implememts the will_paginate paginate method that accepts
-  # page - number >= 1 expressing offset in pages
-  # per_page - row limit within a single page
-  # also take in some custom parameters like
-  # sort - order criteria for document
-  # (terms) - used as a prototype for selection
-  # This method uses the all() method as its implementation
-  # and returns instantiated Zip classes within a will_paginate
-  # page
-  def self.paginate(params)
-    Rails.logger.debug("paginate(#{params})")
-    page=(params[:page] ||= 1).to_i
-    limit=(params[:per_page] ||= 30).to_i
-    offset=(page-1)*limit
-    sort=params[:sort] ||= {}
-
-    #get the associated page of Zips -- eagerly convert doc to Zip
-    zips=[]
-    all(params, sort, offset, limit).each do |doc|
-      zips << Zip.new(doc)
-    end
-
-    #get a count of all documents in the collection
-    total=all(params, sort, 0, 1).count
-
-    WillPaginate::Collection.create(page, limit, total) do |pager|
-      pager.replace(zips)
-    end
   end
 end
